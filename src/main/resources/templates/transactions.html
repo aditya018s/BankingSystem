@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Transactions – Secure Bank</title>
+    <link rel="stylesheet" th:href="@{/css/home.css(v='20260424c')}">
+    <style>
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+        .page-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid #cdd5df;
+            background: white;
+            color: #16313c;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .page-btn.active {
+            background: linear-gradient(135deg, #16313c, #2b6777);
+            color: white;
+            border-color: transparent;
+        }
+        .page-btn.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+        .page-info {
+            font-size: 13px;
+            color: #486581;
+            text-align: center;
+            margin-top: 12px;
+        }
+    </style>
+</head>
+<body class="inner-page">
+
+<nav class="navbar">
+    <h2>Secure Bank</h2>
+    <div class="nav-links">
+        <a th:href="@{/dashboard}">Dashboard</a>
+        <a th:href="@{/credit}">Add Money</a>
+        <a th:href="@{/debit}">Withdraw</a>
+        <a th:href="@{/transfer}">Transfer</a>
+        <a th:href="@{/change-password}">Password</a>
+        <form th:action="@{/logout}" method="post" class="logout-form">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <button type="submit" class="nav-link-button">Logout</button>
+        </form>
+    </div>
+</nav>
+
+<main class="simple-page">
+    <section class="transactions-top">
+        <div class="info-card primary">
+            <p class="eyebrow">Current Balance</p>
+            <div class="balance-amount">₹<span th:text="${#numbers.formatDecimal(balance,1,'COMMA',2,'POINT')}"></span></div>
+            <p class="subtle">Updates with every credit, debit and transfer.</p>
+        </div>
+
+        <div class="info-card">
+            <p class="eyebrow">Activity Centre</p>
+            <h2>Transaction History</h2>
+            <p class="subtle" th:text="${totalItems} + ' records found'"></p>
+            <form method="get" th:action="@{/transactions}" class="filter-form">
+                <select name="type">
+                    <option value="">All Types</option>
+                    <option value="CREDIT"       th:selected="${selectedType == 'CREDIT'}">Credit</option>
+                    <option value="DEBIT"        th:selected="${selectedType == 'DEBIT'}">Debit</option>
+                    <option value="TRANSFER_OUT" th:selected="${selectedType == 'TRANSFER_OUT'}">Transfer Out</option>
+                    <option value="TRANSFER_IN"  th:selected="${selectedType == 'TRANSFER_IN'}">Transfer In</option>
+                </select>
+                <input type="text" name="query" placeholder="Search reference or details"
+                       th:value="${searchQuery}">
+                <button type="submit" class="solid-action">Filter</button>
+            </form>
+            <div class="action-links compact-links" style="margin-top:14px">
+                <a th:href="@{/credit}">Add Money</a>
+                <a th:href="@{/debit}">Withdraw</a>
+                <a th:href="@{/transfer}">Transfer</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="info-card recent-activity transaction-table-card">
+        <div class="section-head">
+            <div>
+                <p class="eyebrow">Ledger</p>
+                <h2>Recent Transactions</h2>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center">
+                <span class="count-chip"
+                      th:text="${totalItems} + ' total · page ' + (${currentPage} + 1) + ' of ' + (${totalPages} == 0 ? 1 : ${totalPages})">
+                </span>
+                <a th:href="@{/transactions/export-pdf}"
+                   style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#16313c,#2b6777);color:white;padding:8px 18px;border-radius:999px;font-size:13px;font-weight:700;text-decoration:none;">
+                    ⬇ Download PDF
+                </a>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Reference</th>
+                <th>Details</th>
+                <th>Date</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:if="${#lists.isEmpty(transactions)}">
+                <td colspan="5" style="text-align:center;padding:30px;color:#486581">
+                    No transactions found.
+                </td>
+            </tr>
+            <tr th:each="t : ${transactions}">
+                <td>
+                        <span class="type-badge"
+                              th:classappend="${t.type == 'CREDIT' or t.type == 'TRANSFER_IN'} ? ' type-credit' : ' type-debit'"
+                              th:text="${t.type}"></span>
+                </td>
+                <td th:class="${t.type == 'CREDIT' or t.type == 'TRANSFER_IN'} ? 'money-positive' : 'money-negative'">
+                    ₹<span th:text="${#numbers.formatDecimal(t.amount,1,'COMMA',2,'POINT')}"></span>
+                </td>
+                <td><span class="table-subtle" th:text="${t.referenceNumber}"></span></td>
+                <td th:text="${t.details}"></td>
+                <td th:text="${#temporals.format(t.date, 'dd MMM yyyy, HH:mm')}"></td>
+            </tr>
+            </tbody>
+        </table>
+
+        <!-- Pagination controls -->
+        <div class="pagination" th:if="${totalPages > 1}">
+            <!-- Previous -->
+            <a class="page-btn"
+               th:classappend="${currentPage == 0} ? ' disabled' : ''"
+               th:href="@{/transactions(page=${currentPage - 1}, type=${selectedType}, query=${searchQuery})}">
+                ← Prev
+            </a>
+
+            <!-- Page numbers -->
+            <th:block th:each="i : ${#numbers.sequence(0, totalPages - 1)}">
+                <a class="page-btn"
+                   th:classappend="${i == currentPage} ? ' active' : ''"
+                   th:href="@{/transactions(page=${i}, type=${selectedType}, query=${searchQuery})}"
+                   th:text="${i + 1}">
+                </a>
+            </th:block>
+
+            <!-- Next -->
+            <a class="page-btn"
+               th:classappend="${currentPage + 1 >= totalPages} ? ' disabled' : ''"
+               th:href="@{/transactions(page=${currentPage + 1}, type=${selectedType}, query=${searchQuery})}">
+                Next →
+            </a>
+        </div>
+
+        <p class="page-info" th:if="${totalPages > 1}"
+           th:text="'Showing 10 per page · ' + ${totalItems} + ' total transactions'"></p>
+
+    </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Bank Login</title>
+    <link rel="stylesheet" th:href="@{/css/style.css(v='20260424c')}">
+</head>
+<body>
+
+<div class="auth-box">
+    <h2>Banking Login</h2>
+
+    <form action="/login" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <label>Username:</label>
+        <input type="text" name="username" placeholder="Enter Username" required><br>
+
+        <label>Password:</label>
+        <input type="password" name="password" placeholder="Enter Password" required><br>
+        <button class="btn" type="submit">Login</button>
+    </form>
+
+    <p class="form-message error" th:if="${error}" th:text="${error}"></p>
+    <p class="form-message success" th:if="${param.resetSuccess}" >Password reset successful. Please log in.</p>
+    <p class="form-message success" th:if="${success}" th:text="${success}"></p>
+
+    <p>Doesn't have an account? <a th:href="@{/signup}">Signup</a></p>
+    <p><a th:href="@{/forgot-password}">Forgot your password?</a></p>
+</div>
+
+</body>
+</html>

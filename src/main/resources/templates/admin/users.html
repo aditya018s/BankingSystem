@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Users – Secure Bank Admin</title>
+    <link rel="stylesheet" th:href="@{/css/home.css(v='20260424c')}">
+    <style>
+        .admin-table { width:100%; border-collapse:collapse; font-size:14px; }
+        .admin-table th {
+            background: linear-gradient(135deg, #16313c, #2b6777);
+            color: white;
+            padding: 13px 14px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+        .admin-table td { padding: 13px 14px; border-bottom: 1px solid #e4eaf1; vertical-align: middle; }
+        .admin-table tr:hover td { background: #f7fafc; }
+
+        .badge-active  { background:#dcfae6; color:#067647; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+        .badge-blocked { background:#fee4e2; color:#b42318; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+
+        .mini-form { display:flex; gap:6px; align-items:center; }
+        .mini-input {
+            padding: 7px 10px;
+            border-radius: 8px;
+            border: 1px solid #cdd5df;
+            font-size: 13px;
+            width: 100px;
+        }
+        .mini-input-pw { width: 130px; }
+
+        .btn-action {
+            padding: 7px 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .btn-block   { background:#fee4e2; color:#b42318; }
+        .btn-unblock { background:#dcfae6; color:#067647; }
+        .btn-delete  { background:#fee4e2; color:#b42318; }
+        .btn-pw      { background:#e0f0ff; color:#1e5fa8; }
+        .btn-credit  { background:#dcfae6; color:#067647; }
+        .btn-debit   { background:#fff3cd; color:#856404; }
+
+        .flash-success { background:#dcfae6; color:#067647; border-radius:10px; padding:12px 18px; margin-bottom:18px; font-weight:600; }
+        .flash-error   { background:#fee4e2; color:#b42318; border-radius:10px; padding:12px 18px; margin-bottom:18px; font-weight:600; }
+    </style>
+</head>
+<body class="inner-page">
+
+<!-- ── Navbar ─────────────────────────────────────────────── -->
+<nav class="navbar">
+    <h2>Secure Bank &nbsp;<span style="font-size:13px;opacity:.7;font-weight:400">Admin Panel</span></h2>
+    <div class="nav-links">
+        <a th:href="@{/admin/dashboard}">Dashboard</a>
+        <a th:href="@{/admin/users}">Users</a>
+        <a th:href="@{/admin/transactions}">Transactions</a>
+        <form th:action="@{/logout}" method="post" class="logout-form">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <button type="submit" class="nav-link-button">Logout</button>
+        </form>
+    </div>
+</nav>
+
+<!-- ── Content ────────────────────────────────────────────── -->
+<main class="dashboard-page">
+
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Admin Panel</p>
+            <h1 style="margin:4px 0">Manage Users</h1>
+        </div>
+        <a th:href="@{/admin/dashboard}" class="count-chip link-chip">← Back to Dashboard</a>
+    </div>
+
+    <!-- Flash messages -->
+    <div class="flash-success" th:if="${success}" th:text="${success}"></div>
+    <div class="flash-error"   th:if="${error}"   th:text="${error}"></div>
+
+    <div class="info-card" style="padding:0;overflow:hidden">
+        <table class="admin-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Balance</th>
+                <th>Status</th>
+                <th>Block / Unblock</th>
+                <th>Change Password</th>
+                <th>Credit</th>
+                <th>Debit</th>
+                <th>Delete</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="u : ${users}" th:if="${u.role != 'ROLE_ADMIN'}">
+
+                <td th:text="${u.id}"></td>
+                <td><strong th:text="${u.name}"></strong></td>
+                <td th:text="${u.username}"></td>
+                <td th:text="${u.email}"></td>
+                <td><strong th:text="'₹' + ${#numbers.formatDecimal(u.balance,1,'COMMA',2,'POINT')}"></strong></td>
+
+                <!-- Status badge -->
+                <td>
+                    <span th:if="${u.enabled}"  class="badge-active">Active</span>
+                    <span th:if="${!u.enabled}" class="badge-blocked">Blocked</span>
+                </td>
+
+                <!-- Block / Unblock -->
+                <td>
+                    <form th:action="@{/admin/users/{id}/toggle-block(id=${u.id})}" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button class="btn-action"
+                                th:classappend="${u.enabled} ? 'btn-block' : 'btn-unblock'"
+                                th:text="${u.enabled} ? 'Block' : 'Unblock'"></button>
+                    </form>
+                </td>
+
+                <!-- Change Password -->
+                <td>
+                    <form th:action="@{/admin/users/{id}/change-password(id=${u.id})}" method="post" class="mini-form">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <input class="mini-input mini-input-pw" type="password" name="newPassword"
+                               placeholder="New password" required minlength="8">
+                        <button class="btn-action btn-pw">Set</button>
+                    </form>
+                </td>
+
+                <!-- Credit -->
+                <td>
+                    <form th:action="@{/admin/users/{id}/credit(id=${u.id})}" method="post" class="mini-form">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <input class="mini-input" type="number" name="amount" placeholder="Amount" required min="1">
+                        <button class="btn-action btn-credit">Credit</button>
+                    </form>
+                </td>
+
+                <!-- Debit -->
+                <td>
+                    <form th:action="@{/admin/users/{id}/debit(id=${u.id})}" method="post" class="mini-form">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <input class="mini-input" type="number" name="amount" placeholder="Amount" required min="1">
+                        <button class="btn-action btn-debit">Debit</button>
+                    </form>
+                </td>
+
+                <!-- Delete -->
+                <td>
+                    <form th:action="@{/admin/users/{id}/delete(id=${u.id})}" method="post"
+                          onsubmit="return confirm('Permanently delete ' + '[[${u.username}]]' + '? This cannot be undone.')">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button class="btn-action btn-delete">Delete</button>
+                    </form>
+                </td>
+
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+</main>
+</body>
+</html>

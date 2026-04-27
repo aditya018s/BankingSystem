@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Secure Bank</title>
+    <link rel="stylesheet" th:href="@{/css/home.css(v='20260424c')}">
+</head>
+<body>
+
+<nav class="navbar">
+    <h2>Secure Bank</h2>
+    <div class="nav-links">
+        <span th:if="${session.loggedInUser == null}">
+            <a href="/">Home</a>
+            <a href="#" onclick="openLogin()">Login</a>
+            <a href="#" onclick="openSignup()">Signup</a>
+        </span>
+
+        <span th:if="${session.loggedInUser != null}">
+            <a th:href="@{/}">Home</a>
+            <a th:href="@{/dashboard}">Dashboard</a>
+            <a th:href="@{/account}">Account</a>
+            <a th:href="@{/update}">Update</a>
+            <a th:href="@{/balance}">Balance</a>
+            <a th:href="@{/transactions}">Transactions</a>
+            <a th:href="@{/transfer}">Transfer</a>
+            <a th:href="@{/credit}">Credit</a>
+            <a th:href="@{/debit}">Debit</a>
+            <a th:href="@{/change-password}">Password</a>
+            <a href="#"><span th:text="${session.loggedInUser}"></span></a>
+            <form th:action="@{/logout}" method="post" class="logout-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button type="submit" class="nav-link-button">Logout</button>
+            </form>
+        </span>
+    </div>
+</nav>
+
+<section class="hero">
+    <h1>Welcome to Secure Banking</h1>
+    <p>Your trusted partner for digital banking services.</p>
+
+    <div th:if="${session.loggedInUser == null}" class="hero-actions">
+        <button type="button" onclick="openLogin()">Login</button>
+        <button type="button" class="secondary" onclick="openSignup()">Create Account</button>
+    </div>
+
+    <div th:if="${session.loggedInUser != null}" class="welcome-card">
+        <h2>Welcome, <span th:text="${user != null ? user.name : session.loggedInUser}"></span></h2>
+        <p>View your balance, check recent activity, and manage transfers from your dashboard.</p>
+        <a th:href="@{/dashboard}" class="dashboard-link">Open Dashboard</a>
+    </div>
+</section>
+
+<div id="loginModal" class="modal">
+    <div class="modal-box">
+        <span class="close" onclick="closeModal('loginModal')">&times;</span>
+        <h2>Login</h2>
+        <form action="/login" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <input type="text" name="username" placeholder="Enter Username" required>
+            <input type="password" name="password" placeholder="Enter Password" required>
+            <button type="submit">Login</button>
+        </form>
+        <p class="form-message error" th:if="${error}" th:text="${error}"></p>
+    </div>
+</div>
+
+<div id="signupModal" class="modal">
+    <div class="modal-box">
+        <span class="close" onclick="closeModal('signupModal')">&times;</span>
+        <h2>Create Account</h2>
+        <form action="/signup" method="post" class="form-grid">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <div class="form-row">
+                <input type="text" name="name" placeholder="Full Name" required>
+                <input type="text" name="username" placeholder="Username" minlength="4" pattern="[A-Za-z0-9_]+" required>
+            </div>
+
+            <div class="form-row">
+                <input type="email" name="email" placeholder="Email Address" required>
+                <input type="text" name="mobile" placeholder="Mobile Number" minlength="10" maxlength="10" pattern="\d{10}" required>
+            </div>
+
+            <div class="form-row">
+                <textarea name="address" placeholder="Full Address" required></textarea>
+                <input type="text" name="pincode" placeholder="Pin Code" minlength="6" maxlength="6" pattern="\d{6}" required>
+            </div>
+
+            <div class="form-row">
+                <input type="password" name="password" placeholder="Password" minlength="8" required>
+                <input type="password" name="confirmPassword" placeholder="Confirm Password" required>
+            </div>
+
+            <button type="submit">Create Account</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openLogin() {
+        document.getElementById("loginModal").style.display = "flex";
+    }
+
+    function openSignup() {
+        document.getElementById("signupModal").style.display = "flex";
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).style.display = "none";
+    }
+
+    window.onclick = function(event) {
+        const loginModal = document.getElementById("loginModal");
+        const signupModal = document.getElementById("signupModal");
+
+        if (event.target === loginModal) {
+            closeModal("loginModal");
+        }
+
+        if (event.target === signupModal) {
+            closeModal("signupModal");
+        }
+    };
+</script>
+
+</body>
+</html>
