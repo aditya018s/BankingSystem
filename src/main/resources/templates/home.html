@@ -2,56 +2,213 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Secure Bank</title>
+    <title>Secure Bank – Your Trusted Digital Banking Partner</title>
     <link rel="stylesheet" th:href="@{/css/home.css(v='20260424c')}">
+    <style>
+        .slider-section { position:relative; width:100%; height:100vh; overflow:hidden; }
+        .slide { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:80px 24px 40px; color:white; opacity:0; transition:opacity 0.8s ease; pointer-events:none; }
+        .slide.active { opacity:1; pointer-events:all; }
+        .slide-1 { background:linear-gradient(135deg,#1d4350 0%,#a43931 100%); }
+        .slide-2 { background:linear-gradient(135deg,#0f2027 0%,#203a43 50%,#2c5364 100%); }
+        .slide-3 { background:linear-gradient(135deg,#134e5e 0%,#71b280 100%); }
+        .slide-4 { background:linear-gradient(135deg,#373b44 0%,#4286f4 100%); }
+        .slide h1 { font-size:clamp(28px,5vw,56px); font-weight:900; margin:0 0 16px; line-height:1.1; max-width:700px; }
+        .slide p  { font-size:clamp(15px,2vw,20px); opacity:.88; max-width:520px; line-height:1.6; margin:0 0 32px; }
+        .slide-badge { display:inline-block; background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); border-radius:999px; padding:6px 18px; font-size:13px; font-weight:600; letter-spacing:.05em; margin-bottom:20px; }
+        .slide-icon { font-size:64px; margin-bottom:16px; }
+        .slider-btn { position:absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:white; width:48px; height:48px; border-radius:50%; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; z-index:10; transition:background .2s; }
+        .slider-btn:hover { background:rgba(255,255,255,.3); }
+        .slider-btn.prev { left:20px; }
+        .slider-btn.next { right:20px; }
+        .slider-dots { position:absolute; bottom:28px; left:50%; transform:translateX(-50%); display:flex; gap:10px; z-index:10; }
+        .dot { width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.4); cursor:pointer; transition:all .3s; }
+        .dot.active { background:white; width:24px; border-radius:4px; }
+        .logout-toast { position:fixed; top:80px; left:50%; transform:translateX(-50%); background:#d1fae5; color:#065f46; padding:12px 24px; border-radius:999px; font-weight:600; font-size:14px; z-index:9999; box-shadow:0 4px 20px rgba(0,0,0,.15); }
+        .hero-actions { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+        .hero-actions button { padding:14px 32px; border-radius:999px; font-size:16px; font-weight:700; cursor:pointer; border:none; transition:all .2s; }
+        .hero-actions button:first-child { background:white; color:#1d4350; }
+        .hero-actions button:first-child:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.2); }
+        .hero-actions .secondary { background:transparent!important; color:white!important; border:2px solid rgba(255,255,255,.7)!important; }
+        .welcome-card { background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25); border-radius:20px; padding:28px 36px; max-width:480px; width:100%; }
+        .welcome-card h2 { margin:0 0 8px; font-size:24px; }
+        .welcome-card p  { opacity:.85; margin:0 0 20px; font-size:15px; }
+        .dashboard-link { display:inline-block; background:white; color:#1d4350; padding:12px 28px; border-radius:999px; font-weight:700; text-decoration:none; }
+        .slide-cta { display:inline-block; background:white; padding:14px 32px; border-radius:999px; font-weight:700; text-decoration:none; font-size:16px; transition:all .2s; }
+        .slide-cta:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.2); }
+        .slide-cta-outline { display:inline-block; background:transparent; color:white; border:2px solid rgba(255,255,255,.7); padding:14px 32px; border-radius:999px; font-weight:600; text-decoration:none; font-size:16px; }
+
+        /* Features */
+        .features-section { background:#f4f7fb; padding:80px 24px; }
+        .features-inner { max-width:1100px; margin:0 auto; }
+        .features-title { text-align:center; margin-bottom:48px; }
+        .features-title h2 { font-size:32px; color:#16313c; margin:0 0 8px; }
+        .features-title p  { color:#486581; font-size:16px; margin:0; }
+        .features-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
+        .feature-card { background:white; border-radius:16px; padding:28px 24px; text-align:center; box-shadow:0 2px 12px rgba(0,0,0,.06); transition:transform .2s; }
+        .feature-card:hover { transform:translateY(-4px); }
+        .feature-icon { font-size:40px; margin-bottom:16px; }
+        .feature-card h3 { font-size:18px; color:#16313c; margin:0 0 8px; }
+        .feature-card p  { color:#486581; font-size:14px; line-height:1.6; margin:0; }
+
+        /* Stats */
+        .stats-section { background:linear-gradient(135deg,#16313c,#2b6777); padding:60px 24px; color:white; text-align:center; }
+        .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:24px; max-width:900px; margin:0 auto; }
+        .stat-item .num { font-size:40px; font-weight:900; }
+        .stat-item .lbl { opacity:.75; font-size:14px; margin-top:4px; }
+
+        /* Footer */
+        .home-footer { background:#0f1f26; color:rgba(255,255,255,.5); text-align:center; padding:24px; font-size:13px; }
+
+        @media(max-width:768px) {
+            .features-grid { grid-template-columns:1fr; }
+            .stats-grid { grid-template-columns:repeat(2,1fr); }
+            .slider-btn { display:none; }
+        }
+    </style>
 </head>
 <body>
 
+<!-- Navbar -->
 <nav class="navbar">
-    <h2>Secure Bank</h2>
+    <h2>🏦 Secure Bank</h2>
     <div class="nav-links">
         <span th:if="${session.loggedInUser == null}">
-            <a href="/">Home</a>
             <a href="#" onclick="openLogin()">Login</a>
-            <a href="#" onclick="openSignup()">Signup</a>
+            <a href="#" onclick="openSignup()" style="background:rgba(255,255,255,0.15);color:white;padding:8px 18px;border-radius:8px;font-weight:600">Sign Up</a>
         </span>
-
-        <span th:if="${session.loggedInUser != null}">
-            <a th:href="@{/}">Home</a>
+        <span th:if="${session.loggedInUser != null}" style="display:flex;align-items:center;gap:4px">
             <a th:href="@{/dashboard}">Dashboard</a>
-            <a th:href="@{/account}">Account</a>
-            <a th:href="@{/update}">Update</a>
-            <a th:href="@{/balance}">Balance</a>
             <a th:href="@{/transactions}">Transactions</a>
-            <a th:href="@{/transfer}">Transfer</a>
-            <a th:href="@{/credit}">Credit</a>
-            <a th:href="@{/debit}">Debit</a>
-            <a th:href="@{/change-password}">Password</a>
-            <a href="#"><span th:text="${session.loggedInUser}"></span></a>
+            <a th:href="@{/loans}">Loans</a>
+            <div class="nav-dropdown">
+                <div class="nav-dropdown-trigger">More <span class="arrow">▼</span></div>
+                <div class="nav-dropdown-menu">
+                    <a th:href="@{/transfer}"><span class="menu-icon">↔</span> Transfer Money</a>
+                    <a th:href="@{/credit}"><span class="menu-icon">+</span> Add Money</a>
+                    <a th:href="@{/debit}"><span class="menu-icon">−</span> Withdraw</a>
+                    <div class="menu-divider"></div>
+                    <a th:href="@{/account}"><span class="menu-icon">👤</span> My Account</a>
+                    <a th:href="@{/balance}"><span class="menu-icon">💰</span> Check Balance</a>
+                    <a th:href="@{/update}"><span class="menu-icon">✏</span> Update Profile</a>
+                    <a th:href="@{/change-password}"><span class="menu-icon">🔒</span> Change Password</a>
+                    <div class="menu-divider"></div>
+                    <a th:href="@{/loans/calculator}"><span class="menu-icon">🧮</span> EMI Calculator</a>
+                </div>
+            </div>
+            <span style="color:rgba(255,255,255,0.6);font-size:13px;padding:0 8px" th:text="'Hi, ' + ${session.loggedInUser}"></span>
             <form th:action="@{/logout}" method="post" class="logout-form">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                <button type="submit" class="nav-link-button">Logout</button>
+                <button type="submit" class="nav-link-button logout-btn">Logout</button>
             </form>
         </span>
     </div>
 </nav>
 
-<section class="hero">
-    <h1>Welcome to Secure Banking</h1>
-    <p>Your trusted partner for digital banking services.</p>
+<!-- Logout toast -->
+<div class="logout-toast" th:if="${logoutSuccess}" id="logoutToast">
+    ✅ You've been logged out successfully!
+</div>
 
-    <div th:if="${session.loggedInUser == null}" class="hero-actions">
-        <button type="button" onclick="openLogin()">Login</button>
-        <button type="button" class="secondary" onclick="openSignup()">Create Account</button>
+<!-- Slider -->
+<section class="slider-section">
+
+    <!-- Slide 1 -->
+    <div class="slide slide-1 active">
+        <div class="slide-icon">🏦</div>
+        <span class="slide-badge">Trusted Digital Banking</span>
+        <h1>Welcome to Secure Banking</h1>
+        <p>Your trusted partner for fast, safe and modern digital banking. Manage your money from anywhere.</p>
+        <div th:if="${session.loggedInUser == null}" class="hero-actions">
+            <button type="button" onclick="openLogin()">Get Started</button>
+            <button type="button" class="secondary" onclick="openSignup()">Create Account</button>
+        </div>
+        <div th:if="${session.loggedInUser != null}" class="welcome-card">
+            <h2>Welcome back, <span th:text="${user != null ? user.name : session.loggedInUser}"></span>! 👋</h2>
+            <p>Ready to manage your finances? Your dashboard is waiting.</p>
+            <a th:href="@{/dashboard}" class="dashboard-link">Open Dashboard →</a>
+        </div>
     </div>
 
-    <div th:if="${session.loggedInUser != null}" class="welcome-card">
-        <h2>Welcome, <span th:text="${user != null ? user.name : session.loggedInUser}"></span></h2>
-        <p>View your balance, check recent activity, and manage transfers from your dashboard.</p>
-        <a th:href="@{/dashboard}" class="dashboard-link">Open Dashboard</a>
+    <!-- Slide 2 -->
+    <div class="slide slide-2">
+        <div class="slide-icon">⚡</div>
+        <span class="slide-badge">Instant & Secure</span>
+        <h1>Send Money Instantly</h1>
+        <p>Transfer funds to any Secure Bank account in seconds. Real-time updates and complete transparency.</p>
+        <div class="hero-actions">
+            <button type="button" onclick="openLogin()" th:if="${session.loggedInUser == null}">Start Transferring</button>
+            <a th:if="${session.loggedInUser != null}" th:href="@{/transfer}" class="slide-cta" style="color:#203a43">Transfer Now →</a>
+        </div>
+    </div>
+
+    <!-- Slide 3 -->
+    <div class="slide slide-3">
+        <div class="slide-icon">💼</div>
+        <span class="slide-badge">Easy Approval</span>
+        <h1>Loans Made Simple</h1>
+        <p>Apply for a personal, home, car or education loan in minutes. Funds credited to your account instantly on approval.</p>
+        <div class="hero-actions">
+            <button type="button" onclick="openLogin()" th:if="${session.loggedInUser == null}">Apply for Loan</button>
+            <a th:if="${session.loggedInUser != null}" th:href="@{/loans/apply}" class="slide-cta" style="color:#134e5e">Apply Now →</a>
+            <a th:href="@{/loans/calculator}" class="slide-cta-outline">EMI Calculator</a>
+        </div>
+    </div>
+
+    <!-- Slide 4 -->
+    <div class="slide slide-4">
+        <div class="slide-icon">🔒</div>
+        <span class="slide-badge">Bank-grade Security</span>
+        <h1>Your Money is Safe</h1>
+        <p>Protected by BCrypt encryption, rate-limited login, CSRF protection and real-time transaction monitoring.</p>
+        <div class="hero-actions">
+            <button type="button" onclick="openLogin()" th:if="${session.loggedInUser == null}">Login Securely</button>
+            <a th:if="${session.loggedInUser != null}" th:href="@{/dashboard}" class="slide-cta" style="color:#373b44">Go to Dashboard →</a>
+        </div>
+    </div>
+
+    <button class="slider-btn prev" onclick="changeSlide(-1)">&#8249;</button>
+    <button class="slider-btn next" onclick="changeSlide(1)">&#8250;</button>
+
+    <div class="slider-dots">
+        <div class="dot active" onclick="goToSlide(0)"></div>
+        <div class="dot" onclick="goToSlide(1)"></div>
+        <div class="dot" onclick="goToSlide(2)"></div>
+        <div class="dot" onclick="goToSlide(3)"></div>
     </div>
 </section>
 
+<!-- Features -->
+<section class="features-section">
+    <div class="features-inner">
+        <div class="features-title">
+            <h2>Everything you need in one place</h2>
+            <p>Modern banking features designed to make your financial life easier</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card"><div class="feature-icon">💸</div><h3>Instant Transfers</h3><p>Send money to any Secure Bank user instantly with real-time balance updates.</p></div>
+            <div class="feature-card"><div class="feature-icon">📊</div><h3>Transaction History</h3><p>Filter, search your complete transaction history and export to PDF anytime.</p></div>
+            <div class="feature-card"><div class="feature-icon">🏠</div><h3>Loan Management</h3><p>Apply for loans, track EMI schedules and make payments from your balance.</p></div>
+            <div class="feature-card"><div class="feature-icon">🔐</div><h3>Secure & Protected</h3><p>BCrypt encryption, rate-limited login and CSRF protection built-in.</p></div>
+            <div class="feature-card"><div class="feature-icon">🧮</div><h3>EMI Calculator</h3><p>Plan your loan with our interactive calculator with sliders.</p></div>
+            <div class="feature-card"><div class="feature-icon">📄</div><h3>PDF Statements</h3><p>Download professional bank statements as PDF anytime.</p></div>
+        </div>
+    </div>
+</section>
+
+<!-- Stats -->
+<section class="stats-section">
+    <div class="stats-grid">
+        <div class="stat-item"><div class="num">10.5%</div><div class="lbl">Loan Interest Rate p.a.</div></div>
+        <div class="stat-item"><div class="num">₹10L</div><div class="lbl">Max Loan Amount</div></div>
+        <div class="stat-item"><div class="num">360</div><div class="lbl">Max Loan Tenure (months)</div></div>
+        <div class="stat-item"><div class="num">100%</div><div class="lbl">Secure Transactions</div></div>
+    </div>
+</section>
+
+<!-- Footer -->
+<div class="home-footer">© 2026 Secure Bank · Built with Spring Boot · All rights reserved</div>
+
+<!-- Login Modal -->
 <div id="loginModal" class="modal">
     <div class="modal-box">
         <span class="close" onclick="closeModal('loginModal')">&times;</span>
@@ -63,9 +220,13 @@
             <button type="submit">Login</button>
         </form>
         <p class="form-message error" th:if="${error}" th:text="${error}"></p>
+        <p style="margin-top:12px;font-size:13px;text-align:center;color:#486581">
+            <a href="/forgot-password" style="color:#2b6777">Forgot password?</a>
+        </p>
     </div>
 </div>
 
+<!-- Signup Modal -->
 <div id="signupModal" class="modal">
     <div class="modal-box">
         <span class="close" onclick="closeModal('signupModal')">&times;</span>
@@ -76,53 +237,63 @@
                 <input type="text" name="name" placeholder="Full Name" required>
                 <input type="text" name="username" placeholder="Username" minlength="4" pattern="[A-Za-z0-9_]+" required>
             </div>
-
             <div class="form-row">
                 <input type="email" name="email" placeholder="Email Address" required>
                 <input type="text" name="mobile" placeholder="Mobile Number" minlength="10" maxlength="10" pattern="\d{10}" required>
             </div>
-
             <div class="form-row">
                 <textarea name="address" placeholder="Full Address" required></textarea>
                 <input type="text" name="pincode" placeholder="Pin Code" minlength="6" maxlength="6" pattern="\d{6}" required>
             </div>
-
             <div class="form-row">
                 <input type="password" name="password" placeholder="Password" minlength="8" required>
                 <input type="password" name="confirmPassword" placeholder="Confirm Password" required>
             </div>
-
             <button type="submit">Create Account</button>
         </form>
     </div>
 </div>
 
 <script>
-    function openLogin() {
-        document.getElementById("loginModal").style.display = "flex";
+    // Slider
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const dots   = document.querySelectorAll('.dot');
+    let autoTimer;
+
+    function goToSlide(n) {
+        slides[currentSlide].classList.remove('active');
+        dots[currentSlide].classList.remove('active');
+        currentSlide = (n + slides.length) % slides.length;
+        slides[currentSlide].classList.add('active');
+        dots[currentSlide].classList.add('active');
+        resetAuto();
     }
-
-    function openSignup() {
-        document.getElementById("signupModal").style.display = "flex";
+    function changeSlide(dir) { goToSlide(currentSlide + dir); }
+    function resetAuto() {
+        clearInterval(autoTimer);
+        autoTimer = setInterval(() => changeSlide(1), 5000);
     }
+    autoTimer = setInterval(() => changeSlide(1), 5000);
 
-    function closeModal(id) {
-        document.getElementById(id).style.display = "none";
-    }
+    document.addEventListener('keydown', e => {
+        if (e.key === 'ArrowLeft')  changeSlide(-1);
+        if (e.key === 'ArrowRight') changeSlide(1);
+    });
 
-    window.onclick = function(event) {
-        const loginModal = document.getElementById("loginModal");
-        const signupModal = document.getElementById("signupModal");
-
-        if (event.target === loginModal) {
-            closeModal("loginModal");
-        }
-
-        if (event.target === signupModal) {
-            closeModal("signupModal");
-        }
+    // Modals
+    function openLogin()  { document.getElementById('loginModal').style.display  = 'flex'; }
+    function openSignup() { document.getElementById('signupModal').style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    window.onclick = e => {
+        ['loginModal','signupModal'].forEach(id => {
+            if (e.target === document.getElementById(id)) closeModal(id);
+        });
     };
-</script>
 
+    // Auto-hide logout toast
+    const toast = document.getElementById('logoutToast');
+    if (toast) setTimeout(() => toast.style.display = 'none', 4000);
+</script>
 </body>
 </html>

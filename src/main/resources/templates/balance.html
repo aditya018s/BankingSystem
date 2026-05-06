@@ -7,14 +7,29 @@
 </head>
 <body class="inner-page">
 <nav class="navbar">
-    <h2>Secure Bank</h2>
+    <h2>🏦 Secure Bank</h2>
     <div class="nav-links">
-        <a th:href="@{/dashboard}">Dashboard</a>
-        <a th:href="@{/transactions}">Transactions</a>
-        <a th:href="@{/change-password}">Password</a>
+        <a th:href="@{/dashboard}" class="">Dashboard</a>
+        <a th:href="@{/transactions}" class="">Transactions</a>
+        <a th:href="@{/loans}" class="">Loans</a>
+        <div class="nav-dropdown">
+            <div class="nav-dropdown-trigger">More <span class="arrow">▼</span></div>
+            <div class="nav-dropdown-menu">
+                <a th:href="@{/transfer}"><span class="menu-icon">↔</span> Transfer Money</a>
+                <a th:href="@{/credit}"><span class="menu-icon">+</span> Add Money</a>
+                <a th:href="@{/debit}"><span class="menu-icon">−</span> Withdraw</a>
+                <div class="menu-divider"></div>
+                <a th:href="@{/account}"><span class="menu-icon">👤</span> My Account</a>
+                <a th:href="@{/balance}"><span class="menu-icon">💰</span> Check Balance</a>
+                <a th:href="@{/update}"><span class="menu-icon">✏</span> Update Profile</a>
+                <a th:href="@{/change-password}"><span class="menu-icon">🔒</span> Change Password</a>
+                <div class="menu-divider"></div>
+                <a th:href="@{/loans/calculator}"><span class="menu-icon">🧮</span> EMI Calculator</a>
+            </div>
+        </div>
         <form th:action="@{/logout}" method="post" class="logout-form">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-            <button type="submit" class="nav-link-button">Logout</button>
+            <button type="submit" class="nav-link-button logout-btn">Logout</button>
         </form>
     </div>
 </nav>

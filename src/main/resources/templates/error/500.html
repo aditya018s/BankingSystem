@@ -5,75 +5,17 @@
     <title>Something Went Wrong – Secure Bank</title>
     <link rel="stylesheet" th:href="@{/css/home.css(v='20260424c')}">
     <style>
-        .error-page {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #1d4350, #a43931);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            text-align: center;
-            padding: 24px;
-        }
-        .error-code {
-            font-size: 120px;
-            font-weight: 900;
-            margin: 0;
-            opacity: 0.15;
-            line-height: 1;
-        }
-        .error-title {
-            font-size: 28px;
-            font-weight: 700;
-            margin: -30px 0 12px;
-        }
-        .error-sub {
-            opacity: 0.85;
-            font-size: 16px;
-            max-width: 420px;
-            line-height: 1.6;
-        }
-        .error-actions {
-            display: flex;
-            gap: 14px;
-            margin-top: 32px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        .btn-white {
-            background: white;
-            color: #1d4350;
-            border: none;
-            border-radius: 999px;
-            padding: 13px 26px;
-            font-weight: 700;
-            font-size: 15px;
-            text-decoration: none;
-        }
-        .btn-outline {
-            background: transparent;
-            color: white;
-            border: 1px solid rgba(255,255,255,0.6);
-            border-radius: 999px;
-            padding: 13px 26px;
-            font-weight: 600;
-            font-size: 15px;
-            text-decoration: none;
-        }
-        .error-detail {
-            margin-top: 28px;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 14px;
-            padding: 16px 24px;
-            font-size: 13px;
-            opacity: 0.75;
-            max-width: 480px;
-        }
+        .error-page { min-height:100vh; background:linear-gradient(135deg,#1d4350,#a43931); display:flex; flex-direction:column; justify-content:center; align-items:center; color:white; text-align:center; padding:24px; }
+        .error-code { font-size:120px; font-weight:900; margin:0; opacity:.12; line-height:1; }
+        .error-title { font-size:28px; font-weight:700; margin:-30px 0 12px; }
+        .error-sub { opacity:.85; font-size:16px; max-width:420px; line-height:1.7; }
+        .error-actions { display:flex; gap:14px; margin-top:32px; flex-wrap:wrap; justify-content:center; }
+        .btn-white { background:white; color:#1d4350; border:none; border-radius:999px; padding:13px 28px; font-weight:700; font-size:15px; text-decoration:none; }
+        .btn-outline { background:transparent; color:white; border:1px solid rgba(255,255,255,.6); border-radius:999px; padding:13px 28px; font-weight:600; font-size:15px; text-decoration:none; }
+        .error-detail { margin-top:28px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); border-radius:14px; padding:16px 24px; font-size:13px; opacity:.75; max-width:480px; }
     </style>
 </head>
-<body class="inner-page">
+<body>
 <div class="error-page">
     <p class="error-code">500</p>
     <h1 class="error-title">Something Went Wrong</h1>
@@ -82,7 +24,9 @@
         this is just a temporary glitch on our end.
     </p>
     <div class="error-actions">
-        <a href="/dashboard" class="btn-white">Back to Dashboard</a>
+        <a th:href="${session.loggedInUser != null} ? '/dashboard' : '/'" class="btn-white">
+            <span th:text="${session.loggedInUser != null} ? 'Back to Dashboard' : 'Go to Home'">Go Back</span>
+        </a>
         <a href="/" class="btn-outline">Home</a>
     </div>
     <div class="error-detail">

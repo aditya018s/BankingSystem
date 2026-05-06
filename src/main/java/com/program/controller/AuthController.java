@@ -54,11 +54,15 @@ public class AuthController {
 
     // ── Home ────────────────────────────────────────────────
     @GetMapping("/")
-    public String home(HttpSession session, Model model) {
+    public String home(HttpSession session, Model model,
+                       @RequestParam(required = false) String logout) {
         String username = (String) session.getAttribute("loggedInUser");
         if (username != null) {
             User user = userService.getUser(username);
             addUserTrustAttributes(model, user, session);
+        }
+        if (logout != null) {
+            model.addAttribute("logoutSuccess", true);
         }
         return "home";
     }

@@ -28,7 +28,9 @@ public class TransactionService {
     // ── Credit ──────────────────────────────────────────────
     @Transactional
     public String credit(String username, double amount) {
-        if (amount <= 0) return "Invalid amount";
+        if (amount <= 0)    return "Amount must be greater than 0";
+        if (amount < 500)   return "Minimum deposit amount is ₹500";
+        if (amount > 100000) return "Maximum deposit per transaction is ₹1,00,000";
         User user = userRepository.findByUsername(username).orElse(null);
         if (user == null) return "User not found";
 
@@ -47,7 +49,8 @@ public class TransactionService {
     // ── Debit ───────────────────────────────────────────────
     @Transactional
     public String debit(String username, double amount) {
-        if (amount <= 0) return "Invalid amount";
+        if (amount <= 0)    return "Amount must be greater than 0";
+        if (amount < 500)   return "Minimum withdrawal amount is ₹500";
         User user = userRepository.findByUsername(username).orElse(null);
         if (user == null) return "User not found";
         if (user.getBalance() < amount) return "Insufficient balance";
@@ -72,7 +75,8 @@ public class TransactionService {
         String sender   = fromUsername.trim();
         String receiver = toUsername.trim();
 
-        if (amount <= 0)                              return "Invalid amount";
+        if (amount <= 0)    return "Amount must be greater than 0";
+        if (amount < 500)   return "Minimum transfer amount is ₹500";
         if (sender.isEmpty() || receiver.isEmpty())   return "User not found";
         if (sender.equalsIgnoreCase(receiver))        return "Cannot transfer to yourself";
 
