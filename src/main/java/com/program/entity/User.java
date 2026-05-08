@@ -43,12 +43,26 @@ public class User {
     @Column(nullable = false)
     private boolean enabled = true;
 
+    // ── Email verification ──────────────────────────────────
+    @Column(nullable = false)
+    private boolean emailVerified = false;
+
+    // ── OTP fields (signup + 2FA login) ────────────────────
+    private String otp;
+    private LocalDateTime otpExpiry;
+    private String otpPurpose; // "SIGNUP", "LOGIN", "2FA"
+
+    // ── Password reset ──────────────────────────────────────
     private String resetToken;
     private LocalDateTime resetTokenExpiry;
 
     // ── Rate limiting ───────────────────────────────────────
     private int failedLoginAttempts = 0;
     private LocalDateTime lockoutUntil;
+
+    // ── Login tracking (for new device alert) ───────────────
+    private String lastLoginIp;
+    private LocalDateTime lastLoginTime;
 
     // ── Audit timestamps ────────────────────────────────────
     @CreationTimestamp
@@ -91,6 +105,14 @@ public class User {
     public void setRole(String r)                    { this.role = r; }
     public boolean isEnabled()                       { return enabled; }
     public void setEnabled(boolean e)                { this.enabled = e; }
+    public boolean isEmailVerified()                 { return emailVerified; }
+    public void setEmailVerified(boolean v)          { this.emailVerified = v; }
+    public String getOtp()                           { return otp; }
+    public void setOtp(String o)                     { this.otp = o; }
+    public LocalDateTime getOtpExpiry()              { return otpExpiry; }
+    public void setOtpExpiry(LocalDateTime o)        { this.otpExpiry = o; }
+    public String getOtpPurpose()                    { return otpPurpose; }
+    public void setOtpPurpose(String p)              { this.otpPurpose = p; }
     public String getResetToken()                    { return resetToken; }
     public void setResetToken(String t)              { this.resetToken = t; }
     public LocalDateTime getResetTokenExpiry()       { return resetTokenExpiry; }
@@ -99,11 +121,21 @@ public class User {
     public void setFailedLoginAttempts(int f)        { this.failedLoginAttempts = f; }
     public LocalDateTime getLockoutUntil()           { return lockoutUntil; }
     public void setLockoutUntil(LocalDateTime l)     { this.lockoutUntil = l; }
+    public String getLastLoginIp()                   { return lastLoginIp; }
+    public void setLastLoginIp(String ip)            { this.lastLoginIp = ip; }
+    public LocalDateTime getLastLoginTime()          { return lastLoginTime; }
+    public void setLastLoginTime(LocalDateTime t)    { this.lastLoginTime = t; }
     public LocalDateTime getCreatedAt()              { return createdAt; }
     public LocalDateTime getUpdatedAt()              { return updatedAt; }
 
-    // ── Helpers ─────────────────────────────────────────────
     public boolean isLockedOut() {
         return lockoutUntil != null && LocalDateTime.now().isBefore(lockoutUntil);
+    }
+
+    public boolean isOtpValid(String inputOtp) {
+        return otp != null
+                && otp.equals(inputOtp)
+                && otpExpiry != null
+                && LocalDateTime.now().isBefore(otpExpiry);
     }
 }

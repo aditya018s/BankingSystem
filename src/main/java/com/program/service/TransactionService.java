@@ -6,6 +6,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import com.program.service.EmailService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +25,7 @@ public class TransactionService {
 
     @Autowired private UserRepository userRepository;
     @Autowired private TransactionRepository transactionRepository;
+    @Autowired private EmailService emailService;
 
     // ── Credit ──────────────────────────────────────────────
     @Transactional
@@ -43,6 +45,7 @@ public class TransactionService {
         tx.setDetails("Money added to account wallet");
         tx.setDate(LocalDateTime.now());
         transactionRepository.save(tx);
+        emailService.sendTransactionNotification(user, tx);
         return "success";
     }
 
@@ -64,6 +67,7 @@ public class TransactionService {
         tx.setDetails("Withdrawal from available balance");
         tx.setDate(LocalDateTime.now());
         transactionRepository.save(tx);
+        emailService.sendTransactionNotification(user, tx);
         return "success";
     }
 
@@ -107,6 +111,8 @@ public class TransactionService {
 
         transactionRepository.save(debit);
         transactionRepository.save(credit);
+        emailService.sendTransactionNotification(senderUser, debit);
+        emailService.sendTransactionNotification(receiverUser, credit);
         return "success";
     }
 

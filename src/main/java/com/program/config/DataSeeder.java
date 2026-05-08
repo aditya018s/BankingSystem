@@ -36,6 +36,8 @@ public class DataSeeder {
             demo.setAddress("123 Demo Street, Banking City");
             demo.setPincode("560001");
             demo.setBalance(25000.0);
+            demo.setEmailVerified(true);
+            demo.setEnabled(true);
             userRepository.save(demo);
 
             User receiver = new User();
@@ -47,6 +49,8 @@ public class DataSeeder {
             receiver.setAddress("44 Market Road, Finance Town");
             receiver.setPincode("110001");
             receiver.setBalance(8200.0);
+            receiver.setEmailVerified(true);
+            receiver.setEnabled(true);
             userRepository.save(receiver);
 
             transactionRepository.save(createTransaction(demo, "CREDIT", 15000.0, "CR", "Opening wallet top-up", LocalDateTime.now().minusDays(5)));
@@ -66,6 +70,7 @@ public class DataSeeder {
                 admin.setBalance(0.0);
                 admin.setRole("ROLE_ADMIN");
                 admin.setEnabled(true);
+                admin.setEmailVerified(true);
                 userRepository.save(admin);
             }
         };

@@ -19,7 +19,13 @@
         <button class="btn" type="submit">Login</button>
     </form>
 
-    <p class="form-message error" th:if="${error}" th:text="${error}"></p>
+    <p class="form-message error"   th:if="${error}"   th:text="${error}"></p>
+    <p class="form-message success" th:if="${param.verified}" style="color:#065f46;background:#d1fae5;padding:10px;border-radius:8px;font-size:14px">
+        ✅ Email verified! Your account is now active. Please login.
+    </p>
+    <p class="form-message success" th:if="${param.resetSuccess}" style="color:#065f46;background:#d1fae5;padding:10px;border-radius:8px;font-size:14px">
+        ✅ Password reset successful! Please login with your new password.
+    </p>
     <p class="form-message success" th:if="${param.resetSuccess}" >Password reset successful. Please log in.</p>
     <p class="form-message success" th:if="${success}" th:text="${success}"></p>
 

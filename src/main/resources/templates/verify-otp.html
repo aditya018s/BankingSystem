@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Verify Email – Secure Bank</title>
+    <link rel="stylesheet" th:href="@{/css/home.css(v='20260424c')}">
+    <style>
+        body { margin:0; background:linear-gradient(135deg,#1d4350,#a43931); min-height:100vh; display:flex; align-items:center; justify-content:center; font-family:Arial,sans-serif; }
+        .otp-card { background:white; border-radius:20px; padding:48px 40px; max-width:420px; width:90%; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+        .otp-icon { font-size:56px; margin-bottom:16px; }
+        h2 { color:#16313c; margin:0 0 8px; font-size:24px; }
+        .subtitle { color:#486581; font-size:14px; margin:0 0 32px; line-height:1.6; }
+        .otp-inputs { display:flex; gap:10px; justify-content:center; margin-bottom:24px; }
+        .otp-inputs input { width:48px; height:56px; text-align:center; font-size:22px; font-weight:700; border:2px solid #cdd5df; border-radius:12px; color:#16313c; outline:none; transition:border .2s; }
+        .otp-inputs input:focus { border-color:#2b6777; box-shadow:0 0 0 3px rgba(43,103,119,.15); }
+        .submit-btn { width:100%; padding:14px; background:linear-gradient(135deg,#16313c,#2b6777); color:white; border:none; border-radius:12px; font-size:16px; font-weight:700; cursor:pointer; margin-bottom:16px; }
+        .submit-btn:hover { opacity:.9; }
+        .resend-form { margin-top:8px; }
+        .resend-btn { background:none; border:none; color:#2b6777; font-size:14px; cursor:pointer; text-decoration:underline; padding:0; }
+        .error-msg { background:#fee2e2; color:#991b1b; border-radius:8px; padding:10px 16px; font-size:14px; margin-bottom:16px; }
+        .success-msg { background:#d1fae5; color:#065f46; border-radius:8px; padding:10px 16px; font-size:14px; margin-bottom:16px; }
+        .timer { color:#ef4444; font-size:13px; margin-bottom:16px; font-weight:600; }
+        input[name="otp"] { display:none; }
+    </style>
+</head>
+<body>
+<div class="otp-card">
+    <div class="otp-icon">📧</div>
+    <h2>Verify Your Email</h2>
+    <p class="subtitle">
+        We sent a 6-digit OTP to <strong th:text="${username != null ? username : 'your email'}"></strong>.<br>
+        Please enter it below to activate your account.
+    </p>
+
+    <div class="error-msg"   th:if="${error}"   th:text="${error}"></div>
+    <div class="success-msg" th:if="${success}" th:text="${success}"></div>
+
+    <form th:action="@{/verify-signup-otp}" method="post" id="otpForm">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <input type="hidden" name="username" th:value="${username}">
+        <input type="hidden" name="otp" id="hiddenOtp">
+
+        <div class="otp-inputs">
+            <input type="text" maxlength="1" class="otp-digit" inputmode="numeric" pattern="[0-9]">
+            <input type="text" maxlength="1" class="otp-digit" inputmode="numeric" pattern="[0-9]">
+            <input type="text" maxlength="1" class="otp-digit" inputmode="numeric" pattern="[0-9]">
+            <input type="text" maxlength="1" class="otp-digit" inputmode="numeric" pattern="[0-9]">
+            <input type="text" maxlength="1" class="otp-digit" inputmode="numeric" pattern="[0-9]">
+            <input type="text" maxlength="1" class="otp-digit" inputmode="numeric" pattern="[0-9]">
+        </div>
+
+        <p class="timer" id="timer">OTP expires in <span id="countdown">10:00</span></p>
+
+        <button type="submit" class="submit-btn">Verify & Activate Account</button>
+    </form>
+
+    <form th:action="@{/resend-signup-otp}" method="post" class="resend-form">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <input type="hidden" name="username" th:value="${username}">
+        <p style="color:#486581;font-size:13px;margin:0 0 8px">Didn't receive the OTP?</p>
+        <button type="submit" class="resend-btn">Resend OTP</button>
+    </form>
+</div>
+
+<script>
+    // OTP input auto-advance
+    const digits = document.querySelectorAll('.otp-digit');
+    digits.forEach((input, i) => {
+        input.addEventListener('input', () => {
+            if (input.value && i < digits.length - 1) digits[i + 1].focus();
+            updateHidden();
+        });
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Backspace' && !input.value && i > 0) digits[i - 1].focus();
+        });
+        input.addEventListener('paste', e => {
+            e.preventDefault();
+            const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+            pasted.split('').forEach((ch, idx) => { if (digits[idx]) digits[idx].value = ch; });
+            updateHidden();
+            if (digits[pasted.length - 1]) digits[pasted.length - 1].focus();
+        });
+    });
+
+    function updateHidden() {
+        document.getElementById('hiddenOtp').value =
+            Array.from(digits).map(d => d.value).join('');
+    }
+
+    document.getElementById('otpForm').addEventListener('submit', e => {
+        updateHidden();
+    });
+
+    // Focus first input
+    digits[0].focus();
+
+    // Countdown timer (10 min)
+    let secs = 600;
+    const countEl = document.getElementById('countdown');
+    const iv = setInterval(() => {
+        secs--;
+        if (secs <= 0) { clearInterval(iv); countEl.textContent = 'Expired'; return; }
+        const m = Math.floor(secs / 60), s = secs % 60;
+        countEl.textContent = m + ':' + String(s).padStart(2, '0');
+    }, 1000);
+</script>
+</body>
+</html>

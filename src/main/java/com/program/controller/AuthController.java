@@ -3,21 +3,19 @@ package com.program.controller;
 import java.security.Principal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.program.entity.Transactions;
 import com.program.entity.User;
 import com.program.repository.UserRepository;
+import com.program.service.EmailService;
+import com.program.service.PdfExportService;
 import com.program.service.TransactionService;
 import com.program.service.UserService;
 
@@ -29,7 +27,9 @@ public class AuthController {
 
     @Autowired private UserService userService;
     @Autowired private TransactionService transactionService;
+    @Autowired private EmailService emailService;
     @Autowired private UserRepository userRepository;
+    @Autowired private PdfExportService pdfExportService;
 
     @ModelAttribute
     public void setCacheHeaders(HttpServletResponse response) {
@@ -45,9 +45,8 @@ public class AuthController {
             if (user != null) {
                 session.setAttribute("loggedInUser", user.getUsername());
                 session.setAttribute("userId", user.getId());
-                if (session.getAttribute("lastLoginTime") == null) {
+                if (session.getAttribute("lastLoginTime") == null)
                     session.setAttribute("lastLoginTime", LocalDateTime.now());
-                }
             }
         }
     }
@@ -57,13 +56,8 @@ public class AuthController {
     public String home(HttpSession session, Model model,
                        @RequestParam(required = false) String logout) {
         String username = (String) session.getAttribute("loggedInUser");
-        if (username != null) {
-            User user = userService.getUser(username);
-            addUserTrustAttributes(model, user, session);
-        }
-        if (logout != null) {
-            model.addAttribute("logoutSuccess", true);
-        }
+        if (username != null) addUserTrustAttributes(model, userService.getUser(username), session);
+        if (logout != null) model.addAttribute("logoutSuccess", true);
         return "home";
     }
 
@@ -72,10 +66,16 @@ public class AuthController {
     public String dashboard(HttpSession session, Model model) {
         String username = (String) session.getAttribute("loggedInUser");
         if (username == null) return "redirect:/login";
-
         User user = userService.getUser(username);
         addUserTrustAttributes(model, user, session);
         model.addAttribute("transactions", transactionService.getTransactions(username));
+
+        // Show new device banner if flagged
+        Boolean isNew = (Boolean) session.getAttribute("isNewDevice");
+        if (Boolean.TRUE.equals(isNew)) {
+            model.addAttribute("newDeviceAlert", true);
+            session.removeAttribute("isNewDevice");
+        }
         return "dashboard";
     }
 
@@ -86,8 +86,9 @@ public class AuthController {
                             @RequestParam(required = false) String logout,
                             Model model) {
         if (session.getAttribute("loggedInUser") != null) return "redirect:/dashboard";
-        if (error != null) model.addAttribute("error", "Invalid username or password. You will be locked out after 5 failed attempts.");
-        if (logout != null) model.addAttribute("success", "You have been logged out successfully");
+        if (error   != null) model.addAttribute("error",
+                "Invalid username or password. Account locks after 5 failed attempts.");
+        if (logout  != null) model.addAttribute("success", "Logged out successfully.");
         return "login";
     }
 
@@ -101,11 +102,39 @@ public class AuthController {
     @PostMapping("/signup")
     public String signup(User user, @RequestParam String confirmPassword, Model model) {
         String result = userService.registerUser(user, confirmPassword);
-        if (!"success".equals(result)) { model.addAttribute("error", result); return "signup"; }
-        return "redirect:/login";
+        if (result.startsWith("otp_sent:")) {
+            return "redirect:/verify-signup-otp?username=" + result.split(":")[1];
+        }
+        model.addAttribute("error", result);
+        return "signup";
     }
 
-    // ── Forgot / Reset Password ─────────────────────────────
+    // ── Verify Signup OTP ───────────────────────────────────
+    @GetMapping("/verify-signup-otp")
+    public String verifySignupOtpPage(@RequestParam String username, Model model) {
+        model.addAttribute("username", username);
+        return "verify-otp";
+    }
+
+    @PostMapping("/verify-signup-otp")
+    public String verifySignupOtp(@RequestParam String username,
+                                  @RequestParam String otp, Model model) {
+        String result = userService.verifySignupOtp(username, otp.trim());
+        if ("success".equals(result)) return "redirect:/login?verified";
+        model.addAttribute("username", username);
+        model.addAttribute("error", result);
+        return "verify-otp";
+    }
+
+    @PostMapping("/resend-signup-otp")
+    public String resendSignupOtp(@RequestParam String username, RedirectAttributes ra) {
+        String result = userService.resendSignupOtp(username);
+        ra.addFlashAttribute("success".equals(result) ? "success" : "error",
+                "success".equals(result) ? "OTP resent to your email!" : result);
+        return "redirect:/verify-signup-otp?username=" + username;
+    }
+
+    // ── Forgot Password → sends reset link via email ────────
     @GetMapping("/forgot-password")
     public String forgotPasswordPage() { return "forgot-password"; }
 
@@ -113,9 +142,15 @@ public class AuthController {
     public String forgotPassword(@RequestParam String username,
                                  @RequestParam String email, Model model) {
         String token = userService.createResetToken(username, email);
-        if (token == null) { model.addAttribute("error", "Username and email do not match"); return "forgot-password"; }
-        model.addAttribute("success", "Identity verified. Use the reset form below.");
-        model.addAttribute("resetToken", token);
+        if (token == null) {
+            model.addAttribute("error", "No account found with that username and email.");
+            return "forgot-password";
+        }
+        // Send reset link via email
+        User user = userService.getUser(username);
+        if (user != null) emailService.sendPasswordResetEmail(user, token);
+        model.addAttribute("success",
+                "✅ Password reset link sent to your email! Check your inbox.");
         return "forgot-password";
     }
 
@@ -130,7 +165,11 @@ public class AuthController {
                                 @RequestParam String password,
                                 @RequestParam String confirmPassword, Model model) {
         String result = userService.resetPassword(token, password, confirmPassword);
-        if (!"success".equals(result)) { model.addAttribute("error", result); model.addAttribute("token", token); return "reset-password"; }
+        if (!"success".equals(result)) {
+            model.addAttribute("error", result);
+            model.addAttribute("token", token);
+            return "reset-password";
+        }
         return "redirect:/login?resetSuccess";
     }
 
@@ -140,8 +179,7 @@ public class AuthController {
                           @ModelAttribute("success") String success, Model model) {
         String username = (String) session.getAttribute("loggedInUser");
         if (username == null) return "redirect:/login";
-        User user = userRepository.findByUsername(username).orElse(null);
-        addUserTrustAttributes(model, user, session);
+        addUserTrustAttributes(model, userRepository.findByUsername(username).orElse(null), session);
         if (success != null && !success.isBlank()) model.addAttribute("success", success);
         return "account";
     }
@@ -151,8 +189,7 @@ public class AuthController {
     public String updatePage(HttpSession session, Model model) {
         String username = (String) session.getAttribute("loggedInUser");
         if (username == null) return "redirect:/login";
-        User user = userService.getUser(username);
-        addUserTrustAttributes(model, user, session);
+        addUserTrustAttributes(model, userService.getUser(username), session);
         return "update";
     }
 
@@ -207,8 +244,8 @@ public class AuthController {
     public String credit(@RequestParam double amount, HttpSession session, RedirectAttributes ra) {
         String username = (String) session.getAttribute("loggedInUser");
         String result = transactionService.credit(username, amount);
-        ra.addFlashAttribute(result.equals("success") ? "success" : "error",
-                result.equals("success") ? "Money added successfully" : result);
+        ra.addFlashAttribute("success".equals(result) ? "success" : "error",
+                "success".equals(result) ? "Money added successfully!" : result);
         return "redirect:/credit";
     }
 
@@ -224,11 +261,11 @@ public class AuthController {
         String username = (String) session.getAttribute("loggedInUser");
         String result = transactionService.debit(username, amount);
         if (!"success".equals(result)) { model.addAttribute("error", result); return "debit"; }
-        model.addAttribute("success", "Money debited");
+        model.addAttribute("success", "Withdrawal successful!");
         return "debit";
     }
 
-    // ── Transactions (PAGINATED) ────────────────────────────
+    // ── Transactions (paginated) ────────────────────────────
     @GetMapping("/transactions")
     public String transactions(HttpSession session,
                                @RequestParam(required = false) String type,
@@ -239,19 +276,16 @@ public class AuthController {
         if (username == null) return "redirect:/login";
 
         User user = userRepository.findByUsername(username).orElse(null);
+        Page<Transactions> txPage = transactionService.getTransactionsPaged(username, type, query, page);
 
-        Page<Transactions> txPage = transactionService.getTransactionsPaged(
-                username, type, query, page);
-
-        model.addAttribute("transactions",  txPage.getContent());
-        model.addAttribute("currentPage",   txPage.getNumber());
-        model.addAttribute("totalPages",    txPage.getTotalPages());
-        model.addAttribute("totalItems",    txPage.getTotalElements());
-        model.addAttribute("balance",       user != null ? user.getBalance() : 0.0);
-        model.addAttribute("selectedType",  type  == null ? "" : type);
-        model.addAttribute("searchQuery",   query == null ? "" : query);
+        model.addAttribute("transactions", txPage.getContent());
+        model.addAttribute("currentPage",  txPage.getNumber());
+        model.addAttribute("totalPages",   txPage.getTotalPages());
+        model.addAttribute("totalItems",   txPage.getTotalElements());
+        model.addAttribute("balance",      user != null ? user.getBalance() : 0.0);
+        model.addAttribute("selectedType", type  == null ? "" : type);
+        model.addAttribute("searchQuery",  query == null ? "" : query);
         addUserTrustAttributes(model, user, session);
-
         return "transactions";
     }
 
@@ -268,34 +302,25 @@ public class AuthController {
         String fromUser = (String) session.getAttribute("loggedInUser");
         if (fromUser == null) return "redirect:/login";
         String result = transactionService.transfer(fromUser, toUser, amount);
-        ra.addFlashAttribute(result.equals("success") ? "success" : "error",
-                result.equals("success") ? "Transfer successful" : result);
+        ra.addFlashAttribute("success".equals(result) ? "success" : "error",
+                "success".equals(result) ? "Transfer successful!" : result);
         return "redirect:/transfer";
     }
 
-
     // ── PDF Export ──────────────────────────────────────────
-    @Autowired
-    private com.program.service.PdfExportService pdfExportService;
-
     @GetMapping("/transactions/export-pdf")
-    public void exportPdf(HttpSession session,
-                          HttpServletResponse response) throws Exception {
+    public void exportPdf(HttpSession session, HttpServletResponse response) throws Exception {
         String username = (String) session.getAttribute("loggedInUser");
         if (username == null) { response.sendRedirect("/login"); return; }
-
-        com.program.entity.User user = userRepository.findByUsername(username).orElse(null);
+        User user = userRepository.findByUsername(username).orElse(null);
         if (user == null) { response.sendRedirect("/login"); return; }
-
-        java.util.List<com.program.entity.Transactions> transactions =
-                transactionService.getTransactions(username);
 
         response.setContentType("application/pdf");
         response.setHeader("Content-Disposition",
                 "attachment; filename=\"statement-" + username + "-" +
                         java.time.LocalDate.now() + ".pdf\"");
-
-        pdfExportService.exportTransactions(user, transactions, response.getOutputStream());
+        pdfExportService.exportTransactions(user, transactionService.getTransactions(username),
+                response.getOutputStream());
     }
 
     // ── Helpers ─────────────────────────────────────────────
