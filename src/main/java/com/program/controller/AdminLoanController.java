@@ -1,6 +1,7 @@
 package com.program.controller;
 
 import com.program.entity.Loan;
+import com.program.entity.LoanPayment;
 import com.program.service.LoanService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -16,7 +17,7 @@ public class AdminLoanController {
 
     @Autowired private LoanService loanService;
 
-    // ── All loans ───────────────────────────────────────────
+    // ── All Loans ───────────────────────────────────────────
     @GetMapping
     public String allLoans(Model model) {
         List<Loan> loans = loanService.getAllLoans();
@@ -34,6 +35,26 @@ public class AdminLoanController {
         return "admin/loans";
     }
 
+    // ── Feature 2: View EMI payments for a specific loan ────
+    @GetMapping("/{id}/payments")
+    public String loanPayments(@PathVariable Long id, Model model) {
+        Loan loan = loanService.getLoan(id);
+        if (loan == null) return "redirect:/admin/loans";
+
+        List<LoanPayment> payments = loanService.getAdminLoanPayments(id);
+
+        int paidEmis      = payments.size();
+        int remainingEmis = Math.max(0, loan.getTenureMonths() - paidEmis);
+        double amountPaid = payments.stream().mapToDouble(LoanPayment::getAmount).sum();
+
+        model.addAttribute("loan",          loan);
+        model.addAttribute("payments",      payments);
+        model.addAttribute("paidEmis",      paidEmis);
+        model.addAttribute("remainingEmis", remainingEmis);
+        model.addAttribute("amountPaid",    amountPaid);
+        return "admin/loan-payments";
+    }
+
     // ── Approve ─────────────────────────────────────────────
     @PostMapping("/{id}/approve")
     public String approve(@PathVariable Long id,
@@ -42,7 +63,7 @@ public class AdminLoanController {
         String result = loanService.approveLoan(id, remark);
         if ("success".equals(result)) {
             ra.addFlashAttribute("success",
-                    "Loan approved! Amount credited to user's account.");
+                    "✅ Loan approved! Amount credited to user's account.");
         } else {
             ra.addFlashAttribute("error", result);
         }

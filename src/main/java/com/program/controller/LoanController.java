@@ -36,12 +36,11 @@ public class LoanController {
         return "loan/my-loans";
     }
 
-    // ── Apply for loan ──────────────────────────────────────
+    // ── Apply ───────────────────────────────────────────────
     @GetMapping("/apply")
     public String applyPage(HttpSession session, Model model) {
         String username = (String) session.getAttribute("loggedInUser");
         if (username == null) return "redirect:/login";
-
         User user = userRepository.findByUsername(username).orElse(null);
         model.addAttribute("user", user);
         model.addAttribute("purposes", Loan.Purpose.values());
@@ -52,8 +51,7 @@ public class LoanController {
     public String applyLoan(@RequestParam double amount,
                             @RequestParam int tenureMonths,
                             @RequestParam Loan.Purpose purpose,
-                            HttpSession session,
-                            RedirectAttributes ra) {
+                            HttpSession session, RedirectAttributes ra) {
         String username = (String) session.getAttribute("loggedInUser");
         if (username == null) return "redirect:/login";
 
@@ -67,7 +65,7 @@ public class LoanController {
         return "redirect:/loans/apply";
     }
 
-    // ── Loan detail + payment history ───────────────────────
+    // ── Loan Detail ─────────────────────────────────────────
     @GetMapping("/{id}")
     public String loanDetail(@PathVariable Long id,
                              HttpSession session, Model model) {
@@ -82,34 +80,50 @@ public class LoanController {
         User user = userRepository.findByUsername(username).orElse(null);
 
         int paidEmis      = payments.size();
-        int remainingEmis = loan.getTenureMonths() - paidEmis;
+        int remainingEmis = Math.max(0, loan.getTenureMonths() - paidEmis);
 
-        model.addAttribute("user", user);
-        model.addAttribute("loan", loan);
-        model.addAttribute("payments", payments);
-        model.addAttribute("paidEmis", paidEmis);
+        model.addAttribute("user",          user);
+        model.addAttribute("loan",          loan);
+        model.addAttribute("payments",      payments);
+        model.addAttribute("paidEmis",      paidEmis);
         model.addAttribute("remainingEmis", remainingEmis);
         return "loan/detail";
     }
 
-    // ── Pay EMI ─────────────────────────────────────────────
+    // ── Pay ONE EMI ─────────────────────────────────────────
     @PostMapping("/{id}/pay-emi")
     public String payEmi(@PathVariable Long id,
-                         HttpSession session,
-                         RedirectAttributes ra) {
+                         HttpSession session, RedirectAttributes ra) {
         String username = (String) session.getAttribute("loggedInUser");
         if (username == null) return "redirect:/login";
 
         String result = loanService.payEmi(username, id);
         if ("success".equals(result)) {
-            ra.addFlashAttribute("success", "EMI paid successfully!");
+            ra.addFlashAttribute("success", "✅ EMI paid successfully!");
         } else {
             ra.addFlashAttribute("error", result);
         }
         return "redirect:/loans/" + id;
     }
 
-    // ── EMI Calculator (no auth needed) ────────────────────
+    // ── Pay ALL EMIs at once (Feature 5) ────────────────────
+    @PostMapping("/{id}/pay-all")
+    public String payAll(@PathVariable Long id,
+                         HttpSession session, RedirectAttributes ra) {
+        String username = (String) session.getAttribute("loggedInUser");
+        if (username == null) return "redirect:/login";
+
+        String result = loanService.payAllEmi(username, id);
+        if ("success".equals(result)) {
+            ra.addFlashAttribute("success",
+                    "🎉 Congratulations! All EMIs paid. Your loan is now closed!");
+        } else {
+            ra.addFlashAttribute("error", result);
+        }
+        return "redirect:/loans/" + id;
+    }
+
+    // ── EMI Calculator ──────────────────────────────────────
     @GetMapping("/calculator")
     public String calculator(HttpSession session, Model model) {
         String username = (String) session.getAttribute("loggedInUser");
@@ -119,14 +133,14 @@ public class LoanController {
         return "loan/calculator";
     }
 
-    // ── AJAX: calculate EMI ─────────────────────────────────
+    // ── AJAX EMI Calculation ─────────────────────────────────
     @GetMapping("/calculate-emi")
     @ResponseBody
     public java.util.Map<String, Object> calculateEmi(
             @RequestParam double amount,
             @RequestParam int tenure) {
-        double emi   = loanService.calculateEmi(amount, tenure);
-        double total = loanService.calculateTotalPayable(emi, tenure);
+        double emi      = loanService.calculateEmi(amount, tenure);
+        double total    = loanService.calculateTotalPayable(emi, tenure);
         double interest = Math.round((total - amount) * 100.0) / 100.0;
 
         java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
