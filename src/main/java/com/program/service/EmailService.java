@@ -186,7 +186,7 @@ public class EmailService {
     // ── Send Password Reset Email ───────────────────────────
     @Async
     public void sendPasswordResetEmail(User user, String token) {
-        String resetLink = "http://localhost:9090/reset-password?token=" + token;
+        String resetLink = "https://" + System.getenv("RENDER_EXTERNAL_HOSTNAME") + "/reset-password?token=" + token;
         String subject = "🔑 Reset Your Secure Bank Password";
         String body = """
                 <!DOCTYPE html>
