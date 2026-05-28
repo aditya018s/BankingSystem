@@ -18,7 +18,7 @@ public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
-    @Value("${MAIL_FROM:${spring.mail.username}}")
+    @Value("${spring.mail.username}")
     private String fromEmail;
 
     private static final DateTimeFormatter FMT =
@@ -266,21 +266,46 @@ public class EmailService {
                 """.formatted(name, context, purpose, otp, expiryMins);
     }
 
-    // ── Core send method ────────────────────────────────────
+    // ── Core send method via Brevo HTTP API ─────────────────
     private void sendHtml(String to, String subject, String htmlBody) {
         try {
-            MimeMessage msg = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");
-            helper.setFrom(fromEmail, "Secure Bank");
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(htmlBody, true);
-            mailSender.send(msg);
+            String apiKey = System.getenv("BREVO_API_KEY");
+            if (apiKey == null || apiKey.isBlank()) {
+                System.err.println("=== EMAIL FAILED: BREVO_API_KEY not set ===");
+                return;
+            }
+
+            String senderEmail = System.getenv("MAIL_FROM") != null
+                    ? System.getenv("MAIL_FROM") : fromEmail;
+
+            String payload = "{"
+                    + "\"sender\":{\"name\":\"Secure Bank\",\"email\":\"" + senderEmail + "\"},"
+                    + "\"to\":[{\"email\":\"" + to + "\"}],"
+                    + "\"subject\":\"" + subject.replace("\"", "\\\"") + "\","
+                    + "\"htmlContent\":\"" + htmlBody.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "") + "\""
+                    + "}";
+
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create("https://api.brevo.com/v3/smtp/email"))
+                    .header("accept", "application/json")
+                    .header("api-key", apiKey)
+                    .header("content-type", "application/json")
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(payload))
+                    .build();
+
+            java.net.http.HttpResponse<String> response =
+                    client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 201) {
+                System.out.println("=== EMAIL SENT OK to " + to + " ===");
+            } else {
+                System.err.println("=== EMAIL FAILED: " + response.statusCode() + " → " + response.body() + " ===");
+            }
         } catch (Exception e) {
             System.err.println("=== EMAIL SEND FAILED ===");
             System.err.println("To: " + to);
             System.err.println("Error: " + e.getMessage());
-            System.err.println("Cause: " + (e.getCause() != null ? e.getCause().getMessage() : "none"));
             e.printStackTrace();
         }
     }
