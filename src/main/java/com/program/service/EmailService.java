@@ -277,7 +277,11 @@ public class EmailService {
             helper.setText(htmlBody, true);
             mailSender.send(msg);
         } catch (Exception e) {
-            System.err.println("Email send failed to " + to + ": " + e.getMessage());
+            System.err.println("=== EMAIL SEND FAILED ===");
+            System.err.println("To: " + to);
+            System.err.println("Error: " + e.getMessage());
+            System.err.println("Cause: " + (e.getCause() != null ? e.getCause().getMessage() : "none"));
+            e.printStackTrace();
         }
     }
 }
