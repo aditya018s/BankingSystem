@@ -18,7 +18,7 @@ public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
-    @Value("${spring.mail.username}")
+    @Value("${MAIL_FROM:${spring.mail.username}}")
     private String fromEmail;
 
     private static final DateTimeFormatter FMT =
